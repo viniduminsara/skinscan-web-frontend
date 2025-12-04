@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Sidebar } from '../sidebar';
-import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui-elements/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui-elements/card';
 import { Camera, TrendingUp, AlertCircle, Calendar } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 

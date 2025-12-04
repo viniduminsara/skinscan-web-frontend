@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Activity, LayoutDashboard, Camera, Clock, User, LogOut } from 'lucide-react';
-import { Button } from './ui/button';
+import { Button } from './ui-elements/button';
 
 interface SidebarProps {
   onSignOut: () => void;
@@ -35,11 +35,10 @@ export function Sidebar({ onSignOut }: SidebarProps) {
             return (
               <Link key={item.path} to={item.path}>
                 <div
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                    isActive
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${isActive
                       ? 'bg-blue-50 text-blue-600'
                       : 'text-gray-700 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.label}</span>

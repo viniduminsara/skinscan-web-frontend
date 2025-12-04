@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
+import { Button } from '../ui-elements/button';
+import { Input } from '../ui-elements/input';
+import { Label } from '../ui-elements/label';
 import { Activity, Mail, Lock, User } from 'lucide-react';
-import { ImageWithFallback } from '../ui/ImageWithFallback';
+import { ImageWithFallback } from '../ui-elements/ImageWithFallback';
 
 interface SignUpPageProps {
   onSignUp: (name: string) => void;

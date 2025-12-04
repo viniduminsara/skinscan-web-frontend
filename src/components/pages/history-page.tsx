@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sidebar } from '../sidebar';
-import { Button } from '../ui/button';
-import { Card, CardContent } from '../ui/card';
-import { Badge } from '../ui/badge';
+import { Button } from '../ui-elements/button';
+import { Card, CardContent } from '../ui-elements/card';
+import { Badge } from '../ui-elements/badge';
 import { Calendar, Eye, TrendingUp, Grid, List } from 'lucide-react';
 
 interface HistoryPageProps {

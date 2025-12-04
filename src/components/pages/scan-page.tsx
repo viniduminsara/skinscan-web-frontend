@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sidebar } from '../sidebar';
-import { Button } from '../ui/button';
-import { Card, CardContent } from '../ui/card';
+import { Button } from '../ui-elements/button';
+import { Card, CardContent } from '../ui-elements/card';
 import { Camera, Upload, Shield, Info } from 'lucide-react';
 
 interface ScanPageProps {

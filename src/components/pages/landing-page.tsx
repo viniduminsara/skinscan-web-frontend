@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Button } from '../ui/button';
+import { Button } from '../ui-elements/button';
 import { Shield, Camera, BarChart, Lock, CheckCircle2, Activity } from 'lucide-react';
-import { ImageWithFallback } from '../ui/ImageWithFallback';
+import { ImageWithFallback } from '../ui-elements/ImageWithFallback';
 
 export function LandingPage() {
   return (

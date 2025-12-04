@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Sidebar } from '../sidebar';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Switch } from '../ui/switch';
-import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Button } from '../ui-elements/button';
+import { Input } from '../ui-elements/input';
+import { Label } from '../ui-elements/label';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui-elements/card';
+import { Switch } from '../ui-elements/switch';
+import { Avatar, AvatarFallback } from '../ui-elements/avatar';
 import { User, Mail, Shield, Trash2, AlertTriangle } from 'lucide-react';
 import {
   AlertDialog,
@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "../ui/alert-dialog";
+} from "../ui-elements/alert-dialog";
 
 interface ProfilePageProps {
   onSignOut: () => void;
