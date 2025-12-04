@@ -1,13 +1,13 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState } from 'react';
-import { LandingPage } from './components/landing-page';
-import { SignUpPage } from './components/sign-up-page';
-import { SignInPage } from './components/sign-in-page';
-import { Dashboard } from './components/dashboard';
-import { ScanPage } from './components/scan-page';
-import { ResultsPage } from './components/results-page';
-import { HistoryPage } from './components/history-page';
-import { ProfilePage } from './components/profile-page';
+import { LandingPage } from './components/pages/landing-page';
+import { SignUpPage } from './components/pages/sign-up-page';
+import { SignInPage } from './components/pages/sign-in-page';
+import { Dashboard } from './components/pages/dashboard';
+import { ScanPage } from './components/pages/scan-page';
+import { ResultsPage } from './components/pages/results-page';
+import { HistoryPage } from './components/pages/history-page';
+import { ProfilePage } from './components/pages/profile-page';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);

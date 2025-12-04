@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { Sidebar } from './sidebar';
-import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
+import { Sidebar } from '../sidebar';
+import { Button } from '../ui-elements/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui-elements/card';
+import { Badge } from '../ui-elements/badge';
 import { AlertCircle, Save, Camera, Eye, EyeOff, BookOpen } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
 
 interface ResultsPageProps {
   onSignOut: () => void;
@@ -19,7 +18,7 @@ export function ResultsPage({ onSignOut, addToHistory }: ResultsPageProps) {
   const [saved, setSaved] = useState(false);
 
   const image = location.state?.image || null;
-  
+
   // Mock prediction data - in real app this would come from AI model
   const result = {
     prediction: 'Possible Melanoma',
@@ -57,7 +56,7 @@ export function ResultsPage({ onSignOut, addToHistory }: ResultsPageProps) {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar onSignOut={onSignOut} />
-      
+
       <div className="flex-1 overflow-auto">
         <div className="p-8">
           <div className="mb-8">
@@ -93,9 +92,9 @@ export function ResultsPage({ onSignOut, addToHistory }: ResultsPageProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="relative rounded-lg overflow-hidden">
-                    <img 
-                      src={image} 
-                      alt="Scan result" 
+                    <img
+                      src={image}
+                      alt="Scan result"
                       className="w-full"
                     />
                     {showHeatmap && (
@@ -146,15 +145,15 @@ export function ResultsPage({ onSignOut, addToHistory }: ResultsPageProps) {
                         </Badge>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Confidence Level</span>
                         <span className="text-gray-900">{result.confidence}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div 
-                          className="bg-blue-600 h-3 rounded-full transition-all" 
+                        <div
+                          className="bg-blue-600 h-3 rounded-full transition-all"
                           style={{ width: `${result.confidence}%` }}
                         ></div>
                       </div>
@@ -192,7 +191,7 @@ export function ResultsPage({ onSignOut, addToHistory }: ResultsPageProps) {
                     <div>
                       <h4 className="text-gray-900 mb-2">Medical Disclaimer</h4>
                       <p className="text-sm text-gray-700">
-                        This AI analysis is for informational purposes only and does not constitute medical advice. 
+                        This AI analysis is for informational purposes only and does not constitute medical advice.
                         Always consult with a qualified healthcare provider for proper diagnosis and treatment.
                       </p>
                       <a href="#" className="text-sm text-amber-700 hover:underline mt-2 inline-block">

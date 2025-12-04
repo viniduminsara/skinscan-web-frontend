@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Sidebar } from './sidebar';
-import { Button } from './ui/button';
-import { Card, CardContent } from './ui/card';
-import { Badge } from './ui/badge';
+import { Sidebar } from '../sidebar';
+import { Button } from '../ui-elements/button';
+import { Card, CardContent } from '../ui-elements/card';
+import { Badge } from '../ui-elements/badge';
 import { Calendar, Eye, TrendingUp, Grid, List } from 'lucide-react';
 
 interface HistoryPageProps {
@@ -52,9 +52,9 @@ export function HistoryPage({ onSignOut, scanHistory }: HistoryPageProps) {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -64,7 +64,7 @@ export function HistoryPage({ onSignOut, scanHistory }: HistoryPageProps) {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar onSignOut={onSignOut} />
-      
+
       <div className="flex-1 overflow-auto">
         <div className="p-8">
           <div className="flex items-center justify-between mb-8">
@@ -112,8 +112,8 @@ export function HistoryPage({ onSignOut, scanHistory }: HistoryPageProps) {
                   {mockHistory.map((scan) => (
                     <Card key={scan.id} className="overflow-hidden hover:shadow-lg transition">
                       <div className="aspect-square bg-gray-200">
-                        <img 
-                          src={scan.image} 
+                        <img
+                          src={scan.image}
                           alt={scan.prediction}
                           className="w-full h-full object-cover"
                         />
@@ -121,11 +121,11 @@ export function HistoryPage({ onSignOut, scanHistory }: HistoryPageProps) {
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <h3 className="text-gray-900">{scan.prediction}</h3>
-                          <Badge 
+                          <Badge
                             variant={
-                              scan.riskLevel === 'High' ? 'destructive' : 
-                              scan.riskLevel === 'Medium' ? 'default' : 
-                              'secondary'
+                              scan.riskLevel === 'High' ? 'destructive' :
+                                scan.riskLevel === 'Medium' ? 'default' :
+                                  'secondary'
                             }
                           >
                             {scan.riskLevel}
@@ -137,8 +137,8 @@ export function HistoryPage({ onSignOut, scanHistory }: HistoryPageProps) {
                             <span className="text-gray-900">{scan.confidence}%</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-blue-600 h-2 rounded-full" 
+                            <div
+                              className="bg-blue-600 h-2 rounded-full"
                               style={{ width: `${scan.confidence}%` }}
                             ></div>
                           </div>
@@ -176,8 +176,8 @@ export function HistoryPage({ onSignOut, scanHistory }: HistoryPageProps) {
                             <tr key={scan.id} className={index !== mockHistory.length - 1 ? 'border-b' : ''}>
                               <td className="p-4">
                                 <div className="w-16 h-16 rounded-lg bg-gray-200 overflow-hidden">
-                                  <img 
-                                    src={scan.image} 
+                                  <img
+                                    src={scan.image}
                                     alt={scan.prediction}
                                     className="w-full h-full object-cover"
                                   />
@@ -185,11 +185,11 @@ export function HistoryPage({ onSignOut, scanHistory }: HistoryPageProps) {
                               </td>
                               <td className="p-4 text-gray-900">{scan.prediction}</td>
                               <td className="p-4">
-                                <Badge 
+                                <Badge
                                   variant={
-                                    scan.riskLevel === 'High' ? 'destructive' : 
-                                    scan.riskLevel === 'Medium' ? 'default' : 
-                                    'secondary'
+                                    scan.riskLevel === 'High' ? 'destructive' :
+                                      scan.riskLevel === 'Medium' ? 'default' :
+                                        'secondary'
                                   }
                                 >
                                   {scan.riskLevel}
@@ -198,8 +198,8 @@ export function HistoryPage({ onSignOut, scanHistory }: HistoryPageProps) {
                               <td className="p-4">
                                 <div className="flex items-center gap-2">
                                   <div className="w-24 bg-gray-200 rounded-full h-2">
-                                    <div 
-                                      className="bg-blue-600 h-2 rounded-full" 
+                                    <div
+                                      className="bg-blue-600 h-2 rounded-full"
                                       style={{ width: `${scan.confidence}%` }}
                                     ></div>
                                   </div>

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sidebar } from './sidebar';
-import { Button } from './ui/button';
-import { Card, CardContent } from './ui/card';
+import { Sidebar } from '../sidebar';
+import { Button } from '../ui-elements/button';
+import { Card, CardContent } from '../ui-elements/card';
 import { Camera, Upload, Shield, Info } from 'lucide-react';
 
 interface ScanPageProps {
@@ -38,7 +38,7 @@ export function ScanPage({ onSignOut }: ScanPageProps) {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar onSignOut={onSignOut} />
-      
+
       <div className="flex-1 overflow-auto">
         <div className="p-8">
           <div className="mb-8">
@@ -112,9 +112,9 @@ export function ScanPage({ onSignOut }: ScanPageProps) {
                 <CardContent className="p-6">
                   <h3 className="text-lg text-gray-900 mb-4">Image Preview</h3>
                   <div className="relative max-w-2xl mx-auto">
-                    <img 
-                      src={selectedImage} 
-                      alt="Selected skin area" 
+                    <img
+                      src={selectedImage}
+                      alt="Selected skin area"
                       className="w-full rounded-lg shadow-lg"
                     />
                   </div>
