@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Button } from './ui/button';
+import { Button } from '../ui/button';
 import { Shield, Camera, BarChart, Lock, CheckCircle2, Activity } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { ImageWithFallback } from '../ui/ImageWithFallback';
 
 export function LandingPage() {
   return (
@@ -59,7 +59,7 @@ export function LandingPage() {
           </div>
           <div className="relative">
             <div className="rounded-2xl overflow-hidden shadow-2xl">
-              <ImageWithFallback 
+              <ImageWithFallback
                 src="https://images.unsplash.com/photo-1758691462848-31a39258dbd8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwdGVjaG5vbG9neSUyMHNtYXJ0cGhvbmV8ZW58MXx8fHwxNzYyNjgzMzcyfDA&ixlib=rb-4.1.0&q=80&w=1080"
                 alt="Medical technology"
                 className="w-full h-auto"
@@ -115,7 +115,7 @@ export function LandingPage() {
             <Shield className="w-16 h-16 text-blue-600 mx-auto mb-6" />
             <h2 className="text-3xl text-gray-900 mb-4">Privacy First – No Images Stored</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Your privacy is our priority. All image processing happens on your device using federated learning. 
+              Your privacy is our priority. All image processing happens on your device using federated learning.
               We never upload or store your skin images on our servers.
             </p>
           </div>

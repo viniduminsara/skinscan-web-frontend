@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Sidebar } from './sidebar';
-import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Sidebar } from '../sidebar';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Camera, TrendingUp, AlertCircle, Calendar } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -27,7 +27,7 @@ export function Dashboard({ userName, onSignOut, scanHistory }: DashboardProps) 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar onSignOut={onSignOut} />
-      
+
       <div className="flex-1 overflow-auto">
         <div className="p-8">
           <div className="mb-8">
@@ -110,8 +110,8 @@ export function Dashboard({ userName, onSignOut, scanHistory }: DashboardProps) 
                           <span className="text-gray-900">{lastScan.confidence}%</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full" 
+                          <div
+                            className="bg-blue-600 h-2 rounded-full"
                             style={{ width: `${lastScan.confidence}%` }}
                           ></div>
                         </div>
@@ -140,17 +140,17 @@ export function Dashboard({ userName, onSignOut, scanHistory }: DashboardProps) 
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="day" stroke="#6b7280" />
                   <YAxis stroke="#6b7280" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'white', 
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px'
                     }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="scans" 
-                    stroke="#3b82f6" 
+                  <Line
+                    type="monotone"
+                    dataKey="scans"
+                    stroke="#3b82f6"
                     strokeWidth={2}
                     dot={{ fill: '#3b82f6', r: 4 }}
                   />

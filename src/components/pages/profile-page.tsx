@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Sidebar } from './sidebar';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Switch } from './ui/switch';
-import { Avatar, AvatarFallback } from './ui/avatar';
+import { Sidebar } from '../sidebar';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Switch } from '../ui/switch';
+import { Avatar, AvatarFallback } from '../ui/avatar';
 import { User, Mail, Shield, Trash2, AlertTriangle } from 'lucide-react';
 import {
   AlertDialog,
@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "./ui/alert-dialog";
+} from "../ui/alert-dialog";
 
 interface ProfilePageProps {
   onSignOut: () => void;
@@ -50,7 +50,7 @@ export function ProfilePage({ onSignOut, userName }: ProfilePageProps) {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar onSignOut={onSignOut} />
-      
+
       <div className="flex-1 overflow-auto">
         <div className="p-8 max-w-4xl">
           <div className="mb-8">
@@ -129,7 +129,7 @@ export function ProfilePage({ onSignOut, userName }: ProfilePageProps) {
                 <div className="flex-1">
                   <h4 className="text-gray-900 mb-1">Enable Federated Learning</h4>
                   <p className="text-sm text-gray-600">
-                    Allow your device to contribute to AI model improvements while keeping your data private. 
+                    Allow your device to contribute to AI model improvements while keeping your data private.
                     All training happens locally on your device.
                   </p>
                 </div>
@@ -143,7 +143,7 @@ export function ProfilePage({ onSignOut, userName }: ProfilePageProps) {
                 <div className="flex-1">
                   <h4 className="text-gray-900 mb-1">Allow Local Data Storage for History</h4>
                   <p className="text-sm text-gray-600">
-                    Store your scan history locally on your device for tracking and comparison. 
+                    Store your scan history locally on your device for tracking and comparison.
                     Data is encrypted and never uploaded to servers.
                   </p>
                 </div>
@@ -159,7 +159,7 @@ export function ProfilePage({ onSignOut, userName }: ProfilePageProps) {
                   <div>
                     <h4 className="text-gray-900 mb-1">Your Privacy is Protected</h4>
                     <p className="text-sm text-gray-700">
-                      All image processing happens on your device. We never upload or store your skin images on our servers. 
+                      All image processing happens on your device. We never upload or store your skin images on our servers.
                       Only anonymized model updates are shared when federated learning is enabled.
                     </p>
                   </div>
