@@ -8,6 +8,7 @@ import { ScanPage } from './components/pages/scan-page';
 import { ResultsPage } from './components/pages/results-page';
 import { HistoryPage } from './components/pages/history-page';
 import { ProfilePage } from './components/pages/profile-page';
+import { Toaster } from 'sonner';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -29,52 +30,55 @@ export default function App() {
   };
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/signup" element={<SignUpPage onSignUp={handleSignIn} />} />
-        <Route path="/signin" element={<SignInPage onSignIn={handleSignIn} />} />
-        <Route 
-          path="/dashboard" 
-          element={
-            isAuthenticated ? 
-            <Dashboard userName={userName} onSignOut={handleSignOut} scanHistory={scanHistory} /> : 
-            <Navigate to="/signin" />
-          } 
-        />
-        <Route 
-          path="/scan" 
-          element={
-            isAuthenticated ? 
-            <ScanPage onSignOut={handleSignOut} /> : 
-            <Navigate to="/signin" />
-          } 
-        />
-        <Route 
-          path="/results" 
-          element={
-            isAuthenticated ? 
-            <ResultsPage onSignOut={handleSignOut} addToHistory={addToHistory} /> : 
-            <Navigate to="/signin" />
-          } 
-        />
-        <Route 
-          path="/history" 
-          element={
-            isAuthenticated ? 
-            <HistoryPage onSignOut={handleSignOut} scanHistory={scanHistory} /> : 
-            <Navigate to="/signin" />
-          } 
-        />
-        <Route 
-          path="/profile" 
-          element={
-            isAuthenticated ? 
-            <ProfilePage onSignOut={handleSignOut} userName={userName} /> : 
-            <Navigate to="/signin" />
-          } 
-        />
-      </Routes>
-    </Router>
+    <>
+      <Router>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/signup" element={<SignUpPage onSignUp={handleSignIn} />} />
+          <Route path="/signin" element={<SignInPage onSignIn={handleSignIn} />} />
+          <Route
+            path="/dashboard"
+            element={
+              isAuthenticated ?
+                <Dashboard userName={userName} onSignOut={handleSignOut} scanHistory={scanHistory} /> :
+                <Navigate to="/signin" />
+            }
+          />
+          <Route
+            path="/scan"
+            element={
+              isAuthenticated ?
+                <ScanPage onSignOut={handleSignOut} /> :
+                <Navigate to="/signin" />
+            }
+          />
+          <Route
+            path="/results"
+            element={
+              isAuthenticated ?
+                <ResultsPage onSignOut={handleSignOut} addToHistory={addToHistory} /> :
+                <Navigate to="/signin" />
+            }
+          />
+          <Route
+            path="/history"
+            element={
+              isAuthenticated ?
+                <HistoryPage onSignOut={handleSignOut} scanHistory={scanHistory} /> :
+                <Navigate to="/signin" />
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              isAuthenticated ?
+                <ProfilePage onSignOut={handleSignOut} userName={userName} /> :
+                <Navigate to="/signin" />
+            }
+          />
+        </Routes>
+      </Router>
+      <Toaster richColors position="top-right" />
+    </>
   );
 }
