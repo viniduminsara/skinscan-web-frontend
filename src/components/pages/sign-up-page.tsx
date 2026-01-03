@@ -5,9 +5,12 @@ import { Input } from '../ui-elements/input';
 import { Label } from '../ui-elements/label';
 import { Activity, Mail, Lock, User } from 'lucide-react';
 import { ImageWithFallback } from '../ui-elements/ImageWithFallback';
+import * as AuthService from '../../api/services/authService';
+import { User as IUser } from '../../api/types/auth';
+import { toast } from 'sonner';
 
 interface SignUpPageProps {
-  onSignUp: (name: string) => void;
+  onSignUp: (userData: IUser, token: string) => void;
 }
 
 export function SignUpPage({ onSignUp }: SignUpPageProps) {
@@ -19,11 +22,19 @@ export function SignUpPage({ onSignUp }: SignUpPageProps) {
     confirmPassword: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password === formData.confirmPassword) {
-      onSignUp(formData.name || 'User');
-      navigate('/dashboard');
+      try {
+            const res = await AuthService.signUp({ username: formData.name, password: formData.password, email: formData.email});
+      
+            if (res.data.success) {
+              onSignUp(res.data.body.user, res.data.body.token);
+              navigate('/dashboard');
+            }
+          } catch { }
+    } else {
+      toast.error("Passwords do not match");
     }
   };
 
