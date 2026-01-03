@@ -1,6 +1,8 @@
 import axios from "axios";
 import { toast } from 'sonner';
 
+export const ACCESS_TOKEN_KEY = "accessToken";
+
 const client = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
     timeout: 10000,
@@ -8,7 +10,7 @@ const client = axios.create({
 
 // Attach token automatically
 client.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
 });
@@ -21,8 +23,6 @@ client.interceptors.response.use(
     (error) => {
         const message = error.response?.data?.message || error.message || "Network error";
         toast.error(message);
-
-        return Promise.reject(error);
     }
 );
 

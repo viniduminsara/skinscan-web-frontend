@@ -5,9 +5,11 @@ import { Input } from '../ui-elements/input';
 import { Label } from '../ui-elements/label';
 import { Activity, Mail, Lock } from 'lucide-react';
 import { ImageWithFallback } from '../ui-elements/ImageWithFallback';
+import * as AuthService from '../../api/services/authService';
+import { User } from '../../api/types/auth';
 
 interface SignInPageProps {
-  onSignIn: (name: string) => void;
+  onSignIn: (userData: User, token: string) => void;
 }
 
 export function SignInPage({ onSignIn }: SignInPageProps) {
@@ -17,10 +19,16 @@ export function SignInPage({ onSignIn }: SignInPageProps) {
     password: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSignIn('User');
-    navigate('/dashboard');
+    try {
+      const res = await AuthService.signIn({ email: formData.email, password: formData.password });
+
+      if (res.data.success) {
+        onSignIn(res.data.body.user, res.data.body.token);
+        navigate('/dashboard');
+      }
+    } catch { }
   };
 
   return (
@@ -47,7 +55,7 @@ export function SignInPage({ onSignIn }: SignInPageProps) {
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
                   id="email"
-                  type="email"
+                  type="text"
                   placeholder="you@example.com"
                   className="pl-10"
                   value={formData.email}

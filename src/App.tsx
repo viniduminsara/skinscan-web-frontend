@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState } from 'react';
 import { LandingPage } from './components/pages/landing-page';
 import { SignUpPage } from './components/pages/sign-up-page';
 import { SignInPage } from './components/pages/sign-in-page';
@@ -9,20 +8,31 @@ import { ResultsPage } from './components/pages/results-page';
 import { HistoryPage } from './components/pages/history-page';
 import { ProfilePage } from './components/pages/profile-page';
 import { Toaster } from 'sonner';
+import { useAppSelector, useAppDispatch } from './store/hooks';
+import { signIn, signOut } from './store/slices/authSlice';
+import { setUserInfo, clearUserInfo } from './store/slices/userSlice';
+import { useState } from 'react';
+import { User } from './api/types/auth';
+import { ACCESS_TOKEN_KEY } from './api/client';
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userName, setUserName] = useState('');
+  // auth derived from redux
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const userName = useAppSelector((state) => state.user.username);
+  const dispatch = useAppDispatch();
+
+  // keep scanHistory local for now (or migrate to redux later)
   const [scanHistory, setScanHistory] = useState<any[]>([]);
 
-  const handleSignIn = (name: string) => {
-    setIsAuthenticated(true);
-    setUserName(name);
+  const handleSignIn = (userData: User, token: string) => {
+    dispatch(setUserInfo({ id: userData.id, username: userData.username, email: userData.email }));
+    dispatch(signIn(userData.id));
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
   };
 
   const handleSignOut = () => {
-    setIsAuthenticated(false);
-    setUserName('');
+    dispatch(signOut());
+    dispatch(clearUserInfo());
   };
 
   const addToHistory = (scan: any) => {
