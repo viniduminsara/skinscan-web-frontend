@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Sidebar } from '../sidebar';
 import { Button } from '../ui-elements/button';
 import { Card, CardContent } from '../ui-elements/card';
-import { Camera, Upload, Shield, Info } from 'lucide-react';
+import { Camera, Upload, Shield, Info, BookOpen } from 'lucide-react';
+import * as ScanService from '../../api/services/scanService';
 
 interface ScanPageProps {
   onSignOut: () => void;
@@ -11,27 +12,29 @@ interface ScanPageProps {
 
 export function ScanPage({ onSignOut }: ScanPageProps) {
   const navigate = useNavigate();
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const file = event.target.files![0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setSelectedImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      setSelectedImage(file);
     }
   };
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (selectedImage) {
       setIsProcessing(true);
-      // Simulate AI processing
-      setTimeout(() => {
-        navigate('/results', { state: { image: selectedImage } });
-      }, 2000);
+      const formData = new FormData();
+      formData.append('image', selectedImage);
+      try {
+        const res = await ScanService.createScan(formData);
+
+        if (res.data.success) {
+          setIsProcessing(false);
+          navigate(`/result/${res.data.body.id}`);
+        }
+      } catch { }
     }
   };
 
@@ -51,12 +54,13 @@ export function ScanPage({ onSignOut }: ScanPageProps) {
             <CardContent className="p-6">
               <div className="flex gap-4">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Shield className="w-6 h-6 text-blue-600" />
+                  <BookOpen className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-gray-900 mb-1">Privacy First</h3>
+                  <h3 className="text-gray-900 mb-1">Medical Disclaimer</h3>
                   <p className="text-sm text-gray-600">
-                    Your images never leave your device — federated learning ensures all processing happens locally while maintaining AI accuracy.
+                    This AI analysis is for informational purposes only and does not constitute medical advice.
+                    Always consult with a qualified healthcare provider for proper diagnosis and treatment.
                   </p>
                 </div>
               </div>
@@ -113,7 +117,7 @@ export function ScanPage({ onSignOut }: ScanPageProps) {
                   <h3 className="text-lg text-gray-900 mb-4">Image Preview</h3>
                   <div className="relative max-w-2xl mx-auto">
                     <img
-                      src={selectedImage}
+                      src={URL.createObjectURL(selectedImage)}
                       alt="Selected skin area"
                       className="w-full rounded-lg shadow-lg"
                     />

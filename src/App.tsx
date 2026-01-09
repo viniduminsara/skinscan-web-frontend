@@ -63,10 +63,10 @@ export default function App() {
             }
           />
           <Route
-            path="/results"
+            path="/result/:id"
             element={
               isAuthenticated ?
-                <ResultsPage onSignOut={handleSignOut} addToHistory={addToHistory} /> :
+                <ResultsPage onSignOut={handleSignOut}/> :
                 <Navigate to="/signin" />
             }
           />
@@ -74,7 +74,7 @@ export default function App() {
             path="/history"
             element={
               isAuthenticated ?
-                <HistoryPage onSignOut={handleSignOut} scanHistory={scanHistory} /> :
+                <HistoryPage onSignOut={handleSignOut} /> :
                 <Navigate to="/signin" />
             }
           />

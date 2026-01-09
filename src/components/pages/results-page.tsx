@@ -4,54 +4,41 @@ import { Sidebar } from '../sidebar';
 import { Button } from '../ui-elements/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui-elements/card';
 import { Badge } from '../ui-elements/badge';
-import { AlertCircle, Save, Camera, Eye, EyeOff, BookOpen } from 'lucide-react';
+import { AlertCircle, Save, Camera, Eye, EyeOff, BookOpen, Check, ShieldCheck } from 'lucide-react';
+import { Scan } from '../../api/types/scan';
+import * as ScanService from '../../api/services/scanService';
+import { formatPredictionResult } from '../../utils';
 
 interface ResultsPageProps {
   onSignOut: () => void;
-  addToHistory: (scan: any) => void;
 }
 
-export function ResultsPage({ onSignOut, addToHistory }: ResultsPageProps) {
+export function ResultsPage({ onSignOut }: ResultsPageProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [showHeatmap, setShowHeatmap] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [scanData, setScanData] = useState<Scan>();
 
-  const image = location.state?.image || null;
+  const resultId = location.pathname.split('/').pop();
 
-  // Mock prediction data - in real app this would come from AI model
-  const result = {
-    prediction: 'Possible Melanoma',
-    confidence: 87,
-    riskLevel: 'High',
-    description: 'The AI model has detected characteristics consistent with melanoma. This is not a medical diagnosis.',
-    recommendations: [
-      'Consult a dermatologist immediately',
-      'Document any changes in size, shape, or color',
-      'Avoid sun exposure to the affected area',
-      'Do not attempt self-treatment'
-    ]
-  };
+  const fetchScanById = async () => {
+    if (!resultId) {
+      navigate('/history');
+      return;
+    }
+
+    try {
+      const res = await ScanService.getScanById(resultId!);
+
+      if (res.data.success) {
+        setScanData(res.data.body);
+      }
+    } catch { }
+  }
 
   useEffect(() => {
-    if (!image) {
-      navigate('/scan');
-    }
-  }, [image, navigate]);
-
-  const handleSave = () => {
-    const scanData = {
-      id: Date.now().toString(),
-      image: image,
-      prediction: result.prediction,
-      confidence: result.confidence,
-      date: new Date().toISOString(),
-    };
-    addToHistory(scanData);
-    setSaved(true);
-  };
-
-  if (!image) return null;
+    fetchScanById();
+  }, [resultId]);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -93,7 +80,7 @@ export function ResultsPage({ onSignOut, addToHistory }: ResultsPageProps) {
                 <CardContent>
                   <div className="relative rounded-lg overflow-hidden">
                     <img
-                      src={image}
+                      src={showHeatmap ? scanData?.result.heatmap : scanData?.imageString}
                       alt="Scan result"
                       className="w-full"
                     />
@@ -110,7 +97,7 @@ export function ResultsPage({ onSignOut, addToHistory }: ResultsPageProps) {
               </Card>
 
               <div className="flex gap-3">
-                <Button
+                {/* <Button
                   onClick={handleSave}
                   disabled={saved}
                   variant="outline"
@@ -118,7 +105,7 @@ export function ResultsPage({ onSignOut, addToHistory }: ResultsPageProps) {
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {saved ? 'Saved to History' : 'Save to History'}
-                </Button>
+                </Button> */}
                 <Link to="/scan" className="flex-1">
                   <Button className="w-full bg-blue-600 hover:bg-blue-700">
                     <Camera className="w-4 h-4 mr-2" />
@@ -137,11 +124,15 @@ export function ResultsPage({ onSignOut, addToHistory }: ResultsPageProps) {
                 <CardContent className="space-y-6">
                   <div>
                     <div className="flex items-start gap-3 mb-4">
-                      <AlertCircle className="w-6 h-6 text-orange-500 flex-shrink-0 mt-1" />
+                      {scanData?.result.prediction === 'Unknown_Normal' ? (
+                        <ShieldCheck className="w-6 h-6 text-gray-500 flex-shrink-0 mt-1" />
+                      ) : (
+                        <AlertCircle className="w-6 h-6 text-orange-500 flex-shrink-0 mt-1" />
+                      )}
                       <div>
-                        <h3 className="text-xl text-gray-900 mb-1">{result.prediction}</h3>
-                        <Badge variant={result.riskLevel === 'High' ? 'destructive' : 'default'}>
-                          {result.riskLevel} Risk
+                        <h3 className="text-xl text-gray-900 mb-1">{formatPredictionResult(scanData?.result.prediction!)}</h3>
+                        <Badge variant={scanData?.result.prediction === 'Unknown_Normal' ? 'secondary' : scanData?.result.confidence! >= 75 ? 'destructive' : 'default'}>
+                          {scanData?.result.prediction === 'Unknown_Normal' ? 'No' : scanData?.result.confidence! > 75 ? 'High' : 'Low'} Risk
                         </Badge>
                       </div>
                     </div>
@@ -149,24 +140,24 @@ export function ResultsPage({ onSignOut, addToHistory }: ResultsPageProps) {
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Confidence Level</span>
-                        <span className="text-gray-900">{result.confidence}%</span>
+                        <span className="text-gray-900">{scanData?.result.confidence}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-3">
                         <div
                           className="bg-blue-600 h-3 rounded-full transition-all"
-                          style={{ width: `${result.confidence}%` }}
+                          style={{ width: `${scanData?.result.confidence}%` }}
                         ></div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t">
+                  {/* <div className="pt-4 border-t">
                     <p className="text-sm text-gray-600">{result.description}</p>
-                  </div>
+                  </div> */}
                 </CardContent>
               </Card>
 
-              <Card>
+              {/* <Card>
                 <CardHeader>
                   <CardTitle>Recommendations</CardTitle>
                 </CardHeader>
@@ -182,7 +173,7 @@ export function ResultsPage({ onSignOut, addToHistory }: ResultsPageProps) {
                     ))}
                   </ul>
                 </CardContent>
-              </Card>
+              </Card> */}
 
               <Card className="bg-amber-50 border-amber-200">
                 <CardContent className="p-6">

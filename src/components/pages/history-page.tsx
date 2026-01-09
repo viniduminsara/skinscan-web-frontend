@@ -1,57 +1,24 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sidebar } from '../sidebar';
 import { Button } from '../ui-elements/button';
 import { Card, CardContent } from '../ui-elements/card';
 import { Badge } from '../ui-elements/badge';
 import { Calendar, Eye, TrendingUp, Grid, List } from 'lucide-react';
+import * as ScanService from '../../api/services/scanService';
+import { Scan } from '../../api/types/scan';
+import { formatPredictionResult } from '../../utils';
 
 interface HistoryPageProps {
   onSignOut: () => void;
-  scanHistory: any[];
 }
 
-export function HistoryPage({ onSignOut, scanHistory }: HistoryPageProps) {
+export function HistoryPage({ onSignOut }: HistoryPageProps) {
+  const [scans, setScans] = useState<Scan[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // Mock data for demonstration if no history exists
-  const mockHistory = scanHistory.length > 0 ? scanHistory : [
-    {
-      id: '1',
-      image: 'https://images.unsplash.com/photo-1601839777132-b3f4e455c369?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxza2luJTIwbWVkaWNhbCUyMGV4YW1pbmF0aW9ufGVufDF8fHx8MTc2MjY4MzUwOHww&ixlib=rb-4.1.0&q=80&w=1080',
-      prediction: 'Benign Nevus',
-      date: '2025-11-08T10:30:00',
-      confidence: 92,
-      riskLevel: 'Low'
-    },
-    {
-      id: '2',
-      image: 'https://images.unsplash.com/photo-1601839777132-b3f4e455c369?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxza2luJTIwbWVkaWNhbCUyMGV4YW1pbmF0aW9ufGVufDF8fHx8MTc2MjY4MzUwOHww&ixlib=rb-4.1.0&q=80&w=1080',
-      prediction: 'Possible Melanoma',
-      date: '2025-11-07T14:15:00',
-      confidence: 87,
-      riskLevel: 'High'
-    },
-    {
-      id: '3',
-      image: 'https://images.unsplash.com/photo-1601839777132-b3f4e455c369?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxza2luJTIwbWVkaWNhbCUyMGV4YW1pbmF0aW9ufGVufDF8fHx8MTc2MjY4MzUwOHww&ixlib=rb-4.1.0&q=80&w=1080',
-      prediction: 'Seborrheic Keratosis',
-      date: '2025-11-05T09:45:00',
-      confidence: 94,
-      riskLevel: 'Low'
-    },
-    {
-      id: '4',
-      image: 'https://images.unsplash.com/photo-1601839777132-b3f4e455c369?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxza2luJTIwbWVkaWNhbCUyMGV4YW1pbmF0aW9ufGVufDF8fHx8MTc2MjY4MzUwOHww&ixlib=rb-4.1.0&q=80&w=1080',
-      prediction: 'Actinic Keratosis',
-      date: '2025-11-03T16:20:00',
-      confidence: 89,
-      riskLevel: 'Medium'
-    },
-  ];
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDate = (dateInput: string | Date) => {
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -60,6 +27,20 @@ export function HistoryPage({ onSignOut, scanHistory }: HistoryPageProps) {
       minute: '2-digit'
     });
   };
+
+  const fetchScanHistory = async () => {
+    try {
+      const res = await ScanService.getScans();
+
+      if (res.data.success) {
+        setScans(res.data.body);
+      }
+    } catch { }
+  }
+
+  useEffect(() => {
+    fetchScanHistory();
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -90,7 +71,7 @@ export function HistoryPage({ onSignOut, scanHistory }: HistoryPageProps) {
             </div>
           </div>
 
-          {mockHistory.length === 0 ? (
+          {scans.length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -109,43 +90,41 @@ export function HistoryPage({ onSignOut, scanHistory }: HistoryPageProps) {
             <>
               {viewMode === 'grid' ? (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {mockHistory.map((scan) => (
+                  {scans.filter((scan) => scan.device === 'WEB').map((scan) => (
                     <Card key={scan.id} className="overflow-hidden hover:shadow-lg transition">
                       <div className="aspect-square bg-gray-200">
                         <img
-                          src={scan.image}
-                          alt={scan.prediction}
+                          src={scan.imageString}
+                          alt={scan.result.prediction}
                           className="w-full h-full object-cover"
                         />
                       </div>
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
-                          <h3 className="text-gray-900">{scan.prediction}</h3>
+                          <h3 className="text-gray-900">{formatPredictionResult(scan.result.prediction!)}</h3>
                           <Badge
                             variant={
-                              scan.riskLevel === 'High' ? 'destructive' :
-                                scan.riskLevel === 'Medium' ? 'default' :
-                                  'secondary'
+                              scan.result.prediction === 'Unknown_Normal' ? 'default' : scan.result.confidence >= 75 ? 'destructive' : 'secondary'
                             }
                           >
-                            {scan.riskLevel}
+                            {scan.result.prediction === 'Unknown_Normal' ? 'Non' : scan.result.confidence >= 75 ? 'High' : 'Low'}
                           </Badge>
                         </div>
                         <div className="space-y-2 mb-4">
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-600">Confidence</span>
-                            <span className="text-gray-900">{scan.confidence}%</span>
+                            <span className="text-gray-900">{scan.result.confidence}%</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
                             <div
                               className="bg-blue-600 h-2 rounded-full"
-                              style={{ width: `${scan.confidence}%` }}
+                              style={{ width: `${scan.result.confidence}%` }}
                             ></div>
                           </div>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-gray-500">{formatDate(scan.date)}</span>
-                          <Link to="/results" state={{ image: scan.image }}>
+                          <Link to={`/result/${scan.id}`}>
                             <Button variant="ghost" size="sm">
                               <Eye className="w-4 h-4 mr-1" />
                               View
@@ -172,27 +151,25 @@ export function HistoryPage({ onSignOut, scanHistory }: HistoryPageProps) {
                           </tr>
                         </thead>
                         <tbody>
-                          {mockHistory.map((scan, index) => (
-                            <tr key={scan.id} className={index !== mockHistory.length - 1 ? 'border-b' : ''}>
+                          {scans.filter((scan) => scan.device === 'WEB').map((scan, index) => (
+                            <tr key={scan.id} className={index !== scans.length - 1 ? 'border-b' : ''}>
                               <td className="p-4">
                                 <div className="w-16 h-16 rounded-lg bg-gray-200 overflow-hidden">
                                   <img
-                                    src={scan.image}
-                                    alt={scan.prediction}
+                                    src={scan.imageString}
+                                    alt={scan.result.prediction}
                                     className="w-full h-full object-cover"
                                   />
                                 </div>
                               </td>
-                              <td className="p-4 text-gray-900">{scan.prediction}</td>
+                              <td className="p-4 text-gray-900">{formatPredictionResult(scan.result.prediction!)}</td>
                               <td className="p-4">
                                 <Badge
                                   variant={
-                                    scan.riskLevel === 'High' ? 'destructive' :
-                                      scan.riskLevel === 'Medium' ? 'default' :
-                                        'secondary'
+                                    scan.result.prediction === 'Unknown_Normal' ? 'default' : scan.result.confidence >= 75 ? 'destructive' : 'secondary'
                                   }
                                 >
-                                  {scan.riskLevel}
+                                  {scan.result.prediction === 'Unknown_Normal' ? 'Non' : scan.result.confidence >= 75 ? 'High' : 'Low'}
                                 </Badge>
                               </td>
                               <td className="p-4">
@@ -200,25 +177,25 @@ export function HistoryPage({ onSignOut, scanHistory }: HistoryPageProps) {
                                   <div className="w-24 bg-gray-200 rounded-full h-2">
                                     <div
                                       className="bg-blue-600 h-2 rounded-full"
-                                      style={{ width: `${scan.confidence}%` }}
+                                      style={{ width: `${scan.result.confidence}%` }}
                                     ></div>
                                   </div>
-                                  <span className="text-sm text-gray-900">{scan.confidence}%</span>
+                                  <span className="text-sm text-gray-900">{scan.result.confidence}%</span>
                                 </div>
                               </td>
                               <td className="p-4 text-sm text-gray-600">{formatDate(scan.date)}</td>
                               <td className="p-4">
                                 <div className="flex gap-2">
-                                  <Link to="/results" state={{ image: scan.image }}>
+                                  <Link to={`/result/${scan.id}`}>
                                     <Button variant="outline" size="sm">
                                       <Eye className="w-4 h-4 mr-1" />
                                       View Details
                                     </Button>
                                   </Link>
-                                  <Button variant="ghost" size="sm">
+                                  {/* <Button variant="ghost" size="sm">
                                     <TrendingUp className="w-4 h-4 mr-1" />
                                     Compare
-                                  </Button>
+                                  </Button> */}
                                 </div>
                               </td>
                             </tr>
