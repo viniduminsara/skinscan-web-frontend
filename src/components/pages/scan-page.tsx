@@ -7,11 +7,7 @@ import { Camera, Upload, Shield, Info, BookOpen } from 'lucide-react';
 import * as ScanService from '../../api/services/scanService';
 import { toast } from 'sonner';
 
-interface ScanPageProps {
-  onSignOut: () => void;
-}
-
-export function ScanPage({ onSignOut }: ScanPageProps) {
+export function ScanPage() {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -116,9 +112,6 @@ export function ScanPage({ onSignOut }: ScanPageProps) {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar onSignOut={onSignOut} />
-
       <div className="flex-1 overflow-auto">
         <div className="p-8">
           <div className="mb-8">
@@ -274,6 +267,5 @@ export function ScanPage({ onSignOut }: ScanPageProps) {
           </Card>
         </div>
       </div>
-    </div>
   );
 }

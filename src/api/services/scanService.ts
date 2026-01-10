@@ -7,3 +7,5 @@ export const getScans = () => client.get<ApiResponse<Scan[]>>("/scans");
 export const getScanById = (id: string) => client.get<ApiResponse<Scan>>(`/scans/${id}`);
 
 export const createScan = (formData: FormData) => client.post<ApiResponse<Scan>>("/scans/web", formData);
+
+export const deleteScanById = (id: string) => client.delete<ApiResponse<void>>(`/scans/${id}`);
