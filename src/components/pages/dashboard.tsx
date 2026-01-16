@@ -7,6 +7,7 @@ import { useAppSelector } from '../../store/hooks';
 import * as DashboardService from '../../api/services/dashboardService';
 import { DashboardData } from '../../api/types/dashboard';
 import { useEffect, useState } from 'react';
+import { formatPredictionResult } from '../../utils';
 
 export function Dashboard() {
   const username = useAppSelector((state) => state.user.username);
@@ -90,7 +91,7 @@ export function Dashboard() {
                 }) : 'No scans yet'}
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                {dashboardData?.lastScan ? dashboardData.lastScan.prediction.prediction : 'Start your first scan'}
+                {dashboardData?.lastScan ? formatPredictionResult(dashboardData.lastScan.prediction.prediction) : 'Start your first scan'}
               </p>
             </CardContent>
           </Card>
@@ -103,16 +104,17 @@ export function Dashboard() {
               <CardTitle>Last Scan Result</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-6">
-                <div className="w-32 h-32 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                <div className="w-full md:w-32 h-32 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
                   {dashboardData?.lastScan.prediction.heatmap && (
                     <img src={dashboardData.lastScan.prediction.heatmap} alt="Last scan" className="w-full h-full object-cover" />
                   )}
                 </div>
-                <div className="flex-1">
+
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <AlertCircle className="w-5 h-5 text-orange-500" />
-                    <span className="text-lg text-gray-900">{dashboardData.lastScan.prediction.prediction}</span>
+                    <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0" />
+                    <span className="text-lg text-gray-900 break-words">{formatPredictionResult(dashboardData.lastScan.prediction.prediction)}</span>
                   </div>
                   <div className="space-y-2">
                     <div>
@@ -132,9 +134,12 @@ export function Dashboard() {
                     </p>
                   </div>
                 </div>
-                <Link to="/history">
-                  <Button variant="outline">View Details</Button>
-                </Link>
+
+                <div className="w-full md:w-auto">
+                  <Link to="/history">
+                    <Button variant="outline" className="w-full md:w-auto">View Details</Button>
+                  </Link>
+                </div>
               </div>
             </CardContent>
           </Card>

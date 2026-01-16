@@ -8,4 +8,4 @@ export const getScanById = (id: string) => client.get<ApiResponse<Scan>>(`/scans
 
 export const createScan = (formData: FormData) => client.post<ApiResponse<Scan>>("/scans/web", formData);
 
-export const deleteScanById = (id: string) => client.delete<ApiResponse<void>>(`/scans/${id}`);
+export const deleteScanById = (id: string) => client.delete<ApiResponse<null>>(`/scans/${id}`);

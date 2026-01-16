@@ -18,7 +18,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../ui-elements/alert-dialog";
-import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { toast } from 'sonner';
+import * as AuthService from '../../api/services/authService';
+import { setUserInfo } from '../../store/slices/userSlice';
 
 interface ProfilePageProps {
   onSignOut: () => void;
@@ -27,16 +30,30 @@ interface ProfilePageProps {
 export function ProfilePage({ onSignOut }: ProfilePageProps) {
   const user = useAppSelector((state) => state.user);
   const [name, setName] = useState(user.username);
-  const [email, setEmail] = useState(user.email);
+  const dispatch = useAppDispatch();
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Profile updated successfully!');
+    try {
+      const res = await AuthService.updateUserProfile({ username: name });
+
+      if (res.data.success) {
+        const { id, username, email } = res.data.body;
+        dispatch(setUserInfo({ id, username, email }));
+        toast.success('Profile updated successfully!');
+      }
+    } catch { }
   };
 
-  const handleDeleteAccount = () => {
-    alert('Account deletion requested');
-    onSignOut();
+  const handleDeleteAccount = async () => {
+    try {
+      const res = await AuthService.deleteAccount();
+
+      if (res.data.success) {
+        toast.success('Account deleted successfully');
+        onSignOut();
+      }
+    } catch { }
   };
 
   const handleClearData = () => {
@@ -91,12 +108,12 @@ export function ProfilePage({ onSignOut }: ProfilePageProps) {
                   <div className="relative mt-2">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <Input
+                      disabled
                       id="email"
                       type="email"
                       placeholder="you@example.com"
                       className="pl-10"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      value={user.email}
                     />
                   </div>
                 </div>
