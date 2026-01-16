@@ -11,7 +11,6 @@ import { Toaster } from 'sonner';
 import { useAppDispatch } from './store/hooks';
 import { signIn, signOut } from './store/slices/authSlice';
 import { setUserInfo, clearUserInfo } from './store/slices/userSlice';
-import { useState } from 'react';
 import { User } from './api/types/auth';
 import { ACCESS_TOKEN_KEY } from './api/client';
 import { Layout } from './components/layout';
@@ -19,8 +18,6 @@ import { ProtectedRoute } from './components/protected-route';
 
 export default function App() {
   const dispatch = useAppDispatch();
-
-  const [scanHistory, setScanHistory] = useState<any[]>([]);
 
   const handleSignIn = (userData: User, token: string) => {
     dispatch(setUserInfo({ id: userData.id, username: userData.username, email: userData.email }));
@@ -43,7 +40,7 @@ export default function App() {
           <Route path="/signin" element={<SignInPage onSignIn={handleSignIn} />} />
           <Route element={<Layout onSignOut={handleSignOut} />}>
             <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<Dashboard scanHistory={scanHistory} />}/>
+              <Route path="/dashboard" element={<Dashboard/>}/>
               <Route path="/scan" element={<ScanPage/>}/>
               <Route path="/result/:id" element={<ResultsPage/>}/>
               <Route path="/history" element={<HistoryPage/>}/>
