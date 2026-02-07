@@ -107,7 +107,10 @@ export function ScanPage() {
           setIsProcessing(false);
           navigate(`/result/${res.data.body.id}`);
         }
-      } catch { }
+      } catch {
+        setIsProcessing(false);
+        setSelectedImage(null);
+      }
     }
   };
 
