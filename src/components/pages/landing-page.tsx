@@ -52,7 +52,7 @@ export function LandingPage() {
             <nav className="hidden md:flex items-center gap-8">
               <a href="#about" className="text-gray-600 hover:text-gray-900 transition">About</a>
               <a href="#features" className="text-gray-600 hover:text-gray-900 transition">Features</a>
-              {user ? (
+              {isAuthenticated ? (
                 <>
                   <a href="/dashboard" className="text-gray-600 hover:text-gray-900 transition">Dashboard</a>
                   <Link to="/profile" className="flex items-center gap-2">
