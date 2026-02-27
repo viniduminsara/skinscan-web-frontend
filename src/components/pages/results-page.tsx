@@ -178,23 +178,25 @@ export function ResultsPage() {
               </CardContent>
             </Card>
 
-            {/* <Card>
+            {scanData?.suggestions && scanData.suggestions.length > 0 && (
+              <Card>
                 <CardHeader>
-                  <CardTitle>Recommendations</CardTitle>
+                  <CardTitle>Suggestions</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
-                    {result.recommendations.map((rec, index) => (
+                    {scanData?.suggestions.map((suggestion, index) => (
                       <li key={index} className="flex gap-3">
                         <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                           <span className="text-sm text-blue-600">{index + 1}</span>
                         </div>
-                        <p className="text-gray-700">{rec}</p>
+                        <p className="text-gray-700">{suggestion}</p>
                       </li>
                     ))}
                   </ul>
                 </CardContent>
-              </Card> */}
+              </Card>
+            )}
 
             <Card className="bg-amber-50 border-amber-200">
               <CardContent className="p-6">
@@ -206,9 +208,6 @@ export function ResultsPage() {
                       This AI analysis is for informational purposes only and does not constitute medical advice.
                       Always consult with a qualified healthcare provider for proper diagnosis and treatment.
                     </p>
-                    <a href="#" className="text-sm text-amber-700 hover:underline mt-2 inline-block">
-                      Learn more about melanoma →
-                    </a>
                   </div>
                 </div>
               </CardContent>

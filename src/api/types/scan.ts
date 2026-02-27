@@ -4,6 +4,7 @@ export interface Scan {
     date: Date;
     imageString: string;
     result: ScanResult;
+    suggestions: string[];
     device: 'WEB' | 'MOBILE';
 }
 
