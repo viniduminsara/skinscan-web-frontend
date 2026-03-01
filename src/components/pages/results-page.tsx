@@ -19,6 +19,12 @@ export function ResultsPage() {
 
   const resultId = location.pathname.split('/').pop();
 
+  // Normalize riskStatus so '0' or 0 both work and we can explicit-check for -1
+  const riskStatusRaw = scanData?.result.riskStatus;
+  const riskStatusNum = typeof riskStatusRaw === 'string' || typeof riskStatusRaw === 'number'
+    ? Number(riskStatusRaw)
+    : null;
+
   const fetchScanById = async () => {
     if (!resultId) {
       navigate('/history');
@@ -170,6 +176,21 @@ export function ResultsPage() {
                       ></div>
                     </div>
                   </div>
+
+                  {scanData?.result.affectedArea && scanData?.result.affectedArea !== 0 && (
+                    <div className="space-y-2 mt-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Estimated Affected Area</span>
+                        <span className="text-gray-900">{scanData?.result.affectedArea}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div
+                          className="bg-blue-600 h-3 rounded-full transition-all"
+                          style={{ width: `${scanData?.result.affectedArea}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* <div className="pt-4 border-t">
@@ -177,6 +198,57 @@ export function ResultsPage() {
                   </div> */}
               </CardContent>
             </Card>
+
+            {riskStatusNum !== null && riskStatusNum !== -1 && (() => {
+              const status = riskStatusNum;
+               const map: Record<number, { trend: string; message: string; bg: string; border: string; iconColor: string; Icon: any }> = {
+                 0: {
+                   trend: 'Improving or Stable',
+                   message: 'Great news! The affected area is stable or shrinking.',
+                   bg: 'bg-green-50',
+                   border: 'border-green-200',
+                   iconColor: 'text-green-600',
+                   Icon: Check,
+                 },
+                 1: {
+                   trend: 'Spreading',
+                   message: 'Notice: The area appears to be spreading slowly.',
+                   bg: 'bg-amber-50',
+                   border: 'border-amber-200',
+                   iconColor: 'text-amber-600',
+                   Icon: AlertCircle,
+                 },
+                 2: {
+                   trend: 'Rapid Spread',
+                   message: 'Alert: The affected area has increased significantly since your last scan.',
+                   bg: 'bg-red-50',
+                   border: 'border-red-200',
+                   iconColor: 'text-orange-600',
+                   Icon: AlertCircle,
+                 },
+               };
+ 
+               const info = map[status] ?? null;
+               if (!info) return null;
+ 
+               const Icon = info.Icon;
+ 
+               return (
+                 <Card className={`${info.bg} ${info.border}`}>
+                   <CardContent className="p-4">
+                     <div className="flex items-start gap-3">
+                       <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-white/40`}>
+                         <Icon className={`w-5 h-5 ${info.iconColor}`} />
+                       </div>
+                       <div>
+                         <h4 className="text-sm font-semibold text-gray-900">{info.trend}</h4>
+                         <p className="text-sm text-gray-700 mt-1">{info.message}</p>
+                       </div>
+                     </div>
+                   </CardContent>
+                 </Card>
+               );
+             })()}
 
             {scanData?.suggestions && scanData.suggestions.length > 0 && (
               <Card>

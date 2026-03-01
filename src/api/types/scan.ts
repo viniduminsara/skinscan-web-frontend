@@ -12,4 +12,6 @@ export interface ScanResult {
     prediction: string;
     confidence: number;
     heatmap: string;
+    affectedArea: number;
+    riskStatus?: number;
 }
