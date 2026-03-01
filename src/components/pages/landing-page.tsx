@@ -2,8 +2,41 @@ import { Link } from 'react-router-dom';
 import { Button } from '../ui-elements/button';
 import { Shield, Camera, BarChart, Lock, CheckCircle2, Activity } from 'lucide-react';
 import { ImageWithFallback } from '../ui-elements/ImageWithFallback';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { Avatar, AvatarFallback } from '../ui-elements/avatar';
+import { useEffect } from 'react';
+import { setAuthChecked, signIn } from '../../store/slices/authSlice';
+import { setUserInfo } from '../../store/slices/userSlice';
+import * as AuthService from '../../api/services/authService';
 
 export function LandingPage() {
+  const user = useAppSelector((state) => state.user);
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const dispatch = useAppDispatch();
+
+  const fetchProfile = async () => {
+    if (isAuthenticated) return;
+    try {
+      const res = await AuthService.getCurrentUser();
+
+      if (res.data.success) {
+        const userData = res.data.body;
+        dispatch(setUserInfo({ id: userData.id, username: userData.username, email: userData.email }));
+        dispatch(signIn(userData.id));
+      } else {
+        dispatch(setAuthChecked(true));
+      }
+    } catch {
+      dispatch(setAuthChecked(true));
+    } finally {
+      dispatch(setAuthChecked(true));
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -19,12 +52,27 @@ export function LandingPage() {
             <nav className="hidden md:flex items-center gap-8">
               <a href="#about" className="text-gray-600 hover:text-gray-900 transition">About</a>
               <a href="#features" className="text-gray-600 hover:text-gray-900 transition">Features</a>
-              <Link to="/signin">
-                <Button variant="ghost">Sign In</Button>
-              </Link>
-              <Link to="/signup">
-                <Button className="bg-blue-600 hover:bg-blue-700">Sign Up</Button>
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <a href="/dashboard" className="text-gray-600 hover:text-gray-900 transition">Dashboard</a>
+                  <Link to="/profile" className="flex items-center gap-2">
+                    <Avatar className="w-10 h-10">
+                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-green-500 text-white text-sm">
+                        {user.username.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link to="/signin">
+                    <Button variant="ghost">Sign In</Button>
+                  </Link>
+                  <Link to="/signup">
+                    <Button className="bg-blue-600 hover:bg-blue-700">Sign Up</Button>
+                  </Link>
+                </>
+              )}
             </nav>
           </div>
         </div>

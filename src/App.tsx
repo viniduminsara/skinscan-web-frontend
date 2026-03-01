@@ -8,21 +8,16 @@ import { ResultsPage } from './components/pages/results-page';
 import { HistoryPage } from './components/pages/history-page';
 import { ProfilePage } from './components/pages/profile-page';
 import { Toaster } from 'sonner';
-import { useAppSelector, useAppDispatch } from './store/hooks';
+import { useAppDispatch } from './store/hooks';
 import { signIn, signOut } from './store/slices/authSlice';
 import { setUserInfo, clearUserInfo } from './store/slices/userSlice';
-import { useState } from 'react';
 import { User } from './api/types/auth';
 import { ACCESS_TOKEN_KEY } from './api/client';
+import { Layout } from './components/layout';
+import { ProtectedRoute } from './components/protected-route';
 
 export default function App() {
-  // auth derived from redux
-  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
-  const userName = useAppSelector((state) => state.user.username);
   const dispatch = useAppDispatch();
-
-  // keep scanHistory local for now (or migrate to redux later)
-  const [scanHistory, setScanHistory] = useState<any[]>([]);
 
   const handleSignIn = (userData: User, token: string) => {
     dispatch(setUserInfo({ id: userData.id, username: userData.username, email: userData.email }));
@@ -33,10 +28,7 @@ export default function App() {
   const handleSignOut = () => {
     dispatch(signOut());
     dispatch(clearUserInfo());
-  };
-
-  const addToHistory = (scan: any) => {
-    setScanHistory(prev => [scan, ...prev]);
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
   };
 
   return (
@@ -46,46 +38,15 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/signup" element={<SignUpPage onSignUp={handleSignIn} />} />
           <Route path="/signin" element={<SignInPage onSignIn={handleSignIn} />} />
-          <Route
-            path="/dashboard"
-            element={
-              isAuthenticated ?
-                <Dashboard userName={userName} onSignOut={handleSignOut} scanHistory={scanHistory} /> :
-                <Navigate to="/signin" />
-            }
-          />
-          <Route
-            path="/scan"
-            element={
-              isAuthenticated ?
-                <ScanPage onSignOut={handleSignOut} /> :
-                <Navigate to="/signin" />
-            }
-          />
-          <Route
-            path="/results"
-            element={
-              isAuthenticated ?
-                <ResultsPage onSignOut={handleSignOut} addToHistory={addToHistory} /> :
-                <Navigate to="/signin" />
-            }
-          />
-          <Route
-            path="/history"
-            element={
-              isAuthenticated ?
-                <HistoryPage onSignOut={handleSignOut} scanHistory={scanHistory} /> :
-                <Navigate to="/signin" />
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              isAuthenticated ?
-                <ProfilePage onSignOut={handleSignOut} userName={userName} /> :
-                <Navigate to="/signin" />
-            }
-          />
+          <Route element={<Layout onSignOut={handleSignOut} />}>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<Dashboard/>}/>
+              <Route path="/scan" element={<ScanPage/>}/>
+              <Route path="/result/:id" element={<ResultsPage/>}/>
+              <Route path="/history" element={<HistoryPage/>}/>
+              <Route path="/profile" element={<ProfilePage onSignOut={handleSignOut}/>}/>
+            </Route>
+          </Route>
         </Routes>
       </Router>
       <Toaster richColors position="top-right" />

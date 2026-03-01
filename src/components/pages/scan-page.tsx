@@ -1,44 +1,120 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sidebar } from '../sidebar';
 import { Button } from '../ui-elements/button';
 import { Card, CardContent } from '../ui-elements/card';
-import { Camera, Upload, Shield, Info } from 'lucide-react';
+import { Camera, Upload, Shield, Info, BookOpen } from 'lucide-react';
+import * as ScanService from '../../api/services/scanService';
+import { toast } from 'sonner';
 
-interface ScanPageProps {
-  onSignOut: () => void;
-}
-
-export function ScanPage({ onSignOut }: ScanPageProps) {
+export function ScanPage() {
   const navigate = useNavigate();
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // camera related state/refs
+  const [cameraActive, setCameraActive] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const file = event.target.files![0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setSelectedImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      setSelectedImage(file);
     }
   };
 
-  const handleAnalyze = () => {
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setCameraActive(true);
+    } catch (err) {
+      toast.error('Could not access camera');
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      try { videoRef.current.pause(); videoRef.current.srcObject = null; } catch { }
+    }
+    setCameraActive(false);
+  };
+
+  useEffect(() => {
+    if (!cameraActive) return;
+    if (!videoRef.current || !streamRef.current) return;
+
+    const video = videoRef.current;
+
+    video.srcObject = streamRef.current;
+
+    video.onloadedmetadata = async () => {
+      try {
+        await video.play();
+      } catch (err) {
+        toast.error('Video play failed');
+      }
+    };
+  }, [cameraActive]);
+
+
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const capturePhoto = async () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current ?? document.createElement('canvas');
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    return new Promise<void>((resolve) => {
+      canvas.toBlob((blob) => {
+        if (!blob) return resolve();
+        const file = new File([blob], `photo-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
+        setSelectedImage(file);
+        stopCamera();
+        resolve();
+      }, 'image/jpeg', 0.95);
+    });
+  };
+
+  const handleAnalyze = async () => {
     if (selectedImage) {
       setIsProcessing(true);
-      // Simulate AI processing
-      setTimeout(() => {
-        navigate('/results', { state: { image: selectedImage } });
-      }, 2000);
+      const formData = new FormData();
+      formData.append('image', selectedImage);
+      try {
+        const res = await ScanService.createScan(formData);
+
+        if (res.data.success) {
+          setIsProcessing(false);
+          navigate(`/result/${res.data.body.id}`);
+        }
+      } catch {
+        setIsProcessing(false);
+        setSelectedImage(null);
+      }
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar onSignOut={onSignOut} />
-
       <div className="flex-1 overflow-auto">
         <div className="p-8">
           <div className="mb-8">
@@ -51,12 +127,13 @@ export function ScanPage({ onSignOut }: ScanPageProps) {
             <CardContent className="p-6">
               <div className="flex gap-4">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Shield className="w-6 h-6 text-blue-600" />
+                  <BookOpen className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-gray-900 mb-1">Privacy First</h3>
+                  <h3 className="text-gray-900 mb-1">Medical Disclaimer</h3>
                   <p className="text-sm text-gray-600">
-                    Your images never leave your device — federated learning ensures all processing happens locally while maintaining AI accuracy.
+                    This AI analysis is for informational purposes only and does not constitute medical advice.
+                    Always consult with a qualified healthcare provider for proper diagnosis and treatment.
                   </p>
                 </div>
               </div>
@@ -66,23 +143,23 @@ export function ScanPage({ onSignOut }: ScanPageProps) {
           {/* Upload Options */}
           {!selectedImage ? (
             <div className="grid md:grid-cols-2 gap-6 mb-8">
+              {/* Camera card - opens live camera preview */}
               <Card className="hover:shadow-lg transition cursor-pointer border-2 border-dashed">
                 <CardContent className="p-12 text-center">
-                  <label htmlFor="camera-input" className="cursor-pointer">
+                  <div
+                    onClick={() => {
+                      startCamera();
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    className="cursor-pointer"
+                  >
                     <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Camera className="w-8 h-8 text-blue-600" />
                     </div>
                     <h3 className="text-xl text-gray-900 mb-2">Take Photo</h3>
                     <p className="text-gray-600">Use your camera to capture an image</p>
-                    <input
-                      id="camera-input"
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                  </label>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -113,7 +190,7 @@ export function ScanPage({ onSignOut }: ScanPageProps) {
                   <h3 className="text-lg text-gray-900 mb-4">Image Preview</h3>
                   <div className="relative max-w-2xl mx-auto">
                     <img
-                      src={selectedImage}
+                      src={URL.createObjectURL(selectedImage)}
                       alt="Selected skin area"
                       className="w-full rounded-lg shadow-lg"
                     />
@@ -151,6 +228,29 @@ export function ScanPage({ onSignOut }: ScanPageProps) {
             </div>
           )}
 
+          {/* Camera preview overlay */}
+          {cameraActive && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+              <Card className="max-w-3xl w-full">
+                <CardContent className="p-4">
+                  <div className="relative">
+                    <video ref={videoRef} className="w-full rounded-lg bg-black" playsInline muted />
+                    <canvas ref={canvasRef} className="hidden" />
+                  </div>
+
+                  <div className="flex gap-4 justify-center mt-3">
+                    <Button variant="outline" onClick={() => { stopCamera(); }}>
+                      Cancel
+                    </Button>
+                    <Button onClick={async () => { await capturePhoto(); }}>
+                      Capture
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Info Section */}
           <Card className="mt-8 bg-gray-50">
             <CardContent className="p-6">
@@ -170,6 +270,5 @@ export function ScanPage({ onSignOut }: ScanPageProps) {
           </Card>
         </div>
       </div>
-    </div>
   );
 }
