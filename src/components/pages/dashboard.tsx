@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '../ui-elements/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui-elements/card';
-import { Camera, TrendingUp, AlertCircle, Calendar } from 'lucide-react';
+import { Camera, TrendingUp, AlertCircle, Calendar, Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAppSelector } from '../../store/hooks';
 import * as DashboardService from '../../api/services/dashboardService';
@@ -29,7 +29,8 @@ export function Dashboard() {
 
   if (!dashboardData) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 w-full min-h-screen flex flex-col items-center justify-center p-8">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
         <p className="text-gray-600">Loading dashboard...</p>
       </div>
     );
@@ -73,7 +74,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl text-gray-900">{dashboardData?.thisMonthScans}</div>
-              <p className="text-xs text-green-600 mt-1">+3 from last week</p>
+              <p className="text-xs text-green-600 mt-1">+{dashboardData?.totalScans - dashboardData?.thisMonthScans} from last week</p>
             </CardContent>
           </Card>
 

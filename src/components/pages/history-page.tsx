@@ -4,7 +4,7 @@ import { Sidebar } from '../sidebar';
 import { Button } from '../ui-elements/button';
 import { Card, CardContent } from '../ui-elements/card';
 import { Badge } from '../ui-elements/badge';
-import { Calendar, Eye, TrendingUp, Grid, List } from 'lucide-react';
+import { Calendar, Eye, TrendingUp, Grid, List, Loader2 } from 'lucide-react';
 import * as ScanService from '../../api/services/scanService';
 import { Scan } from '../../api/types/scan';
 import { formatPredictionResult } from '../../utils';
@@ -12,6 +12,7 @@ import { formatPredictionResult } from '../../utils';
 export function HistoryPage() {
   const [scans, setScans] = useState<Scan[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [loading, setLoading] = useState(true);
 
   const formatDate = (dateInput: string | Date) => {
     const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
@@ -31,7 +32,9 @@ export function HistoryPage() {
       if (res.data.success) {
         setScans(res.data.body);
       }
-    } catch { }
+    } catch { } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -64,7 +67,12 @@ export function HistoryPage() {
           </div>
         </div>
 
-        {scans.length === 0 ? (
+        {loading ? (
+          <div className="flex-1 w-full min-h-screen flex flex-col items-center justify-center p-12 h-64">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
+            <p className="text-gray-600">Loading scan history...</p>
+          </div>
+        ) : scans.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -97,10 +105,15 @@ export function HistoryPage() {
                         <h3 className="text-gray-900">{formatPredictionResult(scan.result.prediction!)}</h3>
                         <Badge
                           variant={
-                            scan.result.prediction === 'Unknown_Normal' ? 'default' : scan.result.confidence >= 75 ? 'destructive' : 'secondary'
+                            scan.result.riskStatus === 2 ? 'destructive' :
+                              scan.result.riskStatus === 1 ? 'default' :
+                                'secondary'
                           }
                         >
-                          {scan.result.prediction === 'Unknown_Normal' ? 'Non' : scan.result.confidence >= 75 ? 'High' : 'Low'}
+                          {scan.result.riskStatus === 2 ? 'High' :
+                            scan.result.riskStatus === 1 ? 'Medium' :
+                              scan.result.riskStatus === 0 ? 'Low' :
+                                'Unknown'}
                         </Badge>
                       </div>
                       <div className="space-y-2 mb-4">
@@ -159,10 +172,15 @@ export function HistoryPage() {
                             <td className="p-4">
                               <Badge
                                 variant={
-                                  scan.result.prediction === 'Unknown_Normal' ? 'default' : scan.result.confidence >= 75 ? 'destructive' : 'secondary'
+                                  scan.result.riskStatus === 2 ? 'destructive' :
+                                    scan.result.riskStatus === 1 ? 'default' :
+                                      'secondary'
                                 }
                               >
-                                {scan.result.prediction === 'Unknown_Normal' ? 'Non' : scan.result.confidence >= 75 ? 'High' : 'Low'}
+                                {scan.result.riskStatus === 2 ? 'High' :
+                                  scan.result.riskStatus === 1 ? 'Medium' :
+                                    scan.result.riskStatus === 0 ? 'Low' :
+                                      'Unknown'}
                               </Badge>
                             </td>
                             <td className="p-4">
