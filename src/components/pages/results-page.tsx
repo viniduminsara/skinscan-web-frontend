@@ -4,12 +4,16 @@ import { Sidebar } from '../sidebar';
 import { Button } from '../ui-elements/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui-elements/card';
 import { Badge } from '../ui-elements/badge';
-import { AlertCircle, Save, Camera, Eye, EyeOff, BookOpen, Check, ShieldCheck, Trash2, Loader2 } from 'lucide-react';
+import { AlertCircle, Save, Camera, Eye, EyeOff, BookOpen, Check, ShieldCheck, Trash2, Loader2, Download } from 'lucide-react';
 import { Scan } from '../../api/types/scan';
 import * as ScanService from '../../api/services/scanService';
 import { formatPredictionResult } from '../../utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui-elements/alert-dialog';
 import { toast } from 'sonner';
+
+import { jsPDF } from 'jspdf';
+import { toPng } from 'html-to-image';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 export function ResultsPage() {
   const location = useLocation();
@@ -17,6 +21,8 @@ export function ResultsPage() {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [scanData, setScanData] = useState<Scan>();
   const [loading, setLoading] = useState(true);
+  const [historyScans, setHistoryScans] = useState<Scan[]>([]);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   const resultId = location.pathname.split('/').pop();
 
@@ -58,10 +64,131 @@ export function ResultsPage() {
 
   useEffect(() => {
     fetchScanById();
+    const fetchHistory = async () => {
+      try {
+        const res = await ScanService.getScans();
+        if (res.data.success) {
+          setHistoryScans(res.data.body);
+        }
+      } catch (e) { }
+    };
+    fetchHistory();
   }, [resultId]);
 
+  const sameDiseaseScans = historyScans
+    .filter(s => s.result.prediction === scanData?.result.prediction && s.result.affectedArea !== undefined && s.result.affectedArea !== null)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const showChart = sameDiseaseScans.length > 3;
+  const chartData = sameDiseaseScans.map(scan => ({
+    date: new Date(scan.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    area: scan.result.affectedArea || 0
+  }));
+
+  const handleGeneratePdf = async () => {
+    const input = document.getElementById('pdf-report-container');
+    if (!input) return;
+
+    setGeneratingPdf(true);
+    try {
+      const imgData = await toPng(input, { cacheBust: true, pixelRatio: 2 });
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgHeight = (input.offsetHeight * pdfWidth) / input.offsetWidth;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // Add the first page
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Add more pages if content exceeds one page
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`skinscan-report-${scanData?.result.prediction || 'scan'}.pdf`);
+      toast.success('PDF report generated successfully');
+    } catch (error) {
+      console.error('Failed to generate PDF', error);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 overflow-auto relative">
+      <div style={{ position: 'absolute', top: 0, left: '-9999px', width: '800px', zIndex: -10, pointerEvents: 'none', fontFamily: 'sans-serif' }}>
+        <div id="pdf-report-container" style={{ backgroundColor: 'white', padding: '32px', width: '100%' }}>
+          <div style={{ borderBottom: '2px solid #2563eb', paddingBottom: '16px', marginBottom: '24px' }}>
+            <h1 style={{ fontSize: '30px', fontWeight: 'bold', color: '#111827', margin: 0 }}>SkinScan Analysis Report</h1>
+            <p style={{ color: '#4b5563', marginTop: '8px', marginBottom: 0 }}>Generated on {new Date().toLocaleDateString()}</p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '24px', marginBottom: '32px' }}>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ fontWeight: '600', fontSize: '18px', color: '#1f2937', marginBottom: '8px' }}>Original Image</h3>
+              <img src={scanData?.imageString} alt="Original" style={{ width: '100%', borderRadius: '8px', border: '1px solid #e5e7eb', objectFit: 'cover', aspectRatio: '1/1' }} crossOrigin="anonymous" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ fontWeight: '600', fontSize: '18px', color: '#1f2937', marginBottom: '8px' }}>Heatmap Analysis</h3>
+              <div style={{ position: 'relative', borderRadius: '8px', border: '1px solid #e5e7eb', overflow: 'hidden', aspectRatio: '1/1' }}>
+                <img src={scanData?.result.heatmap || scanData?.imageString} alt="Heatmap" style={{ width: '100%', height: '100%', objectFit: 'cover' }} crossOrigin="anonymous" />
+                <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle, rgba(239,68,68,0.4) 0%, rgba(249,115,22,0.3) 50%, transparent 100%)' }}></div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '270px' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#111827', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px', marginBottom: '16px' }}>Detection Results</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', marginBottom: '8px' }}>
+              <span style={{ color: '#4b5563', fontWeight: '500' }}>Predicated Condition:</span>
+              <span style={{ color: '#111827', fontWeight: 'bold' }}>{formatPredictionResult(scanData?.result.prediction || '')}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', marginBottom: '8px' }}>
+              <span style={{ color: '#4b5563', fontWeight: '500' }}>Confidence Level:</span>
+              <span style={{ color: '#111827', fontWeight: 'bold' }}>{scanData?.result.confidence}%</span>
+            </div>
+            {scanData?.result.affectedArea !== undefined && scanData?.result.affectedArea !== 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', marginBottom: '8px' }}>
+                <span style={{ color: '#4b5563', fontWeight: '500' }}>Estimated Affected Area:</span>
+                <span style={{ color: '#111827', fontWeight: 'bold' }}>{scanData?.result.affectedArea}%</span>
+              </div>
+            )}
+            {riskStatusNum !== null && riskStatusNum !== -1 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', marginBottom: '8px' }}>
+                <span style={{ color: '#4b5563', fontWeight: '500' }}>Risk Status:</span>
+                <span style={{ color: '#111827', fontWeight: 'bold' }}>
+                  {riskStatusNum === 2 ? 'High Risk' : riskStatusNum === 1 ? 'Medium Risk' : riskStatusNum === 0 ? 'Low Risk' : 'Unknown Risk'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {showChart && chartData.length > 0 && (
+            <div>
+              <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#111827', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px', marginBottom: '16px' }}>Affected Area History</h2>
+              <div style={{ width: '100%', backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px' }}>
+                <LineChart width={700} height={250} data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <RechartsTooltip />
+                  <Line type="monotone" dataKey="area" stroke="#2563eb" strokeWidth={2} name="Affected Area (%)" isAnimationActive={false} />
+                </LineChart>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {loading ? (
         <div className="flex-1 w-full min-h-screen flex flex-col items-center justify-center p-8 min-h-[500px]">
           <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
@@ -126,11 +253,14 @@ export function ResultsPage() {
                     Scan Again
                   </Button>
                 </Link>
+                <Button variant="outline" className="flex-1" onClick={handleGeneratePdf} disabled={generatingPdf}>
+                  {generatingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                  {generatingPdf ? 'Generating...' : 'Report PDF'}
+                </Button>
                 <AlertDialog>
-                  <AlertDialogTrigger asChild className="flex-1">
+                  <AlertDialogTrigger asChild className="flex-[0.5]">
                     <Button variant="destructive">
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Scan
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -208,12 +338,29 @@ export function ResultsPage() {
                       </div>
                     )}
                   </div>
-
-                  {/* <div className="pt-4 border-t">
-                    <p className="text-sm text-gray-600">{result.description}</p>
-                  </div> */}
                 </CardContent>
               </Card>
+
+              {showChart && chartData.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Affected Area Over Time</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="date" />
+                          <YAxis />
+                          <RechartsTooltip />
+                          <Line type="monotone" dataKey="area" stroke="#2563eb" strokeWidth={2} name="Affected Area (%)" isAnimationActive={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {riskStatusNum !== null && riskStatusNum !== -1 && (() => {
                 const status = riskStatusNum;
