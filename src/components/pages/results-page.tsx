@@ -4,18 +4,25 @@ import { Sidebar } from '../sidebar';
 import { Button } from '../ui-elements/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui-elements/card';
 import { Badge } from '../ui-elements/badge';
-import { AlertCircle, Save, Camera, Eye, EyeOff, BookOpen, Check, ShieldCheck, Trash2 } from 'lucide-react';
+import { AlertCircle, Save, Camera, Eye, EyeOff, BookOpen, Check, ShieldCheck, Trash2, Loader2, Download } from 'lucide-react';
 import { Scan } from '../../api/types/scan';
 import * as ScanService from '../../api/services/scanService';
 import { formatPredictionResult } from '../../utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui-elements/alert-dialog';
 import { toast } from 'sonner';
 
+import { jsPDF } from 'jspdf';
+import { toPng } from 'html-to-image';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+
 export function ResultsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [scanData, setScanData] = useState<Scan>();
+  const [loading, setLoading] = useState(true);
+  const [historyScans, setHistoryScans] = useState<Scan[]>([]);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   const resultId = location.pathname.split('/').pop();
 
@@ -37,7 +44,9 @@ export function ResultsPage() {
       if (res.data.success) {
         setScanData(res.data.body);
       }
-    } catch { }
+    } catch { } finally {
+      setLoading(false);
+    }
   }
 
   const handleDeleteScan = async () => {
@@ -55,238 +64,393 @@ export function ResultsPage() {
 
   useEffect(() => {
     fetchScanById();
+    const fetchHistory = async () => {
+      try {
+        const res = await ScanService.getScans();
+        if (res.data.success) {
+          setHistoryScans(res.data.body);
+        }
+      } catch (e) { }
+    };
+    fetchHistory();
   }, [resultId]);
 
+  const sameDiseaseScans = historyScans
+    .filter(s => s.result.prediction === scanData?.result.prediction && s.result.affectedArea !== undefined && s.result.affectedArea !== null)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const showChart = sameDiseaseScans.length > 3;
+  const chartData = sameDiseaseScans.map(scan => ({
+    date: new Date(scan.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    area: scan.result.affectedArea || 0
+  }));
+
+  const handleGeneratePdf = async () => {
+    const input = document.getElementById('pdf-report-container');
+    if (!input) return;
+
+    setGeneratingPdf(true);
+    try {
+      const imgData = await toPng(input, { cacheBust: true, pixelRatio: 2 });
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgHeight = (input.offsetHeight * pdfWidth) / input.offsetWidth;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // Add the first page
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Add more pages if content exceeds one page
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`skinscan-report-${scanData?.result.prediction || 'scan'}.pdf`);
+      toast.success('PDF report generated successfully');
+    } catch (error) {
+      console.error('Failed to generate PDF', error);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
   return (
-    <div className="flex-1 overflow-auto">
-      <div className="p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl text-gray-900 mb-2">Analysis Results</h1>
-          <p className="text-gray-600">AI-powered skin analysis complete</p>
-        </div>
+    <div className="flex-1 overflow-auto relative">
+      <div style={{ position: 'absolute', top: 0, left: '-9999px', width: '800px', zIndex: -10, pointerEvents: 'none', fontFamily: 'sans-serif' }}>
+        <div id="pdf-report-container" style={{ backgroundColor: 'white', padding: '32px', width: '100%' }}>
+          <div style={{ borderBottom: '2px solid #2563eb', paddingBottom: '16px', marginBottom: '24px' }}>
+            <h1 style={{ fontSize: '30px', fontWeight: 'bold', color: '#111827', margin: 0 }}>SkinScan Analysis Report</h1>
+            <p style={{ color: '#4b5563', marginTop: '8px', marginBottom: 0 }}>Generated on {new Date().toLocaleDateString()}</p>
+          </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Image Preview */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Scanned Image</CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowHeatmap(!showHeatmap)}
-                  >
-                    {showHeatmap ? (
-                      <>
-                        <EyeOff className="w-4 h-4 mr-2" />
-                        Hide Heatmap
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="w-4 h-4 mr-2" />
-                        Show Heatmap
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="relative rounded-lg overflow-hidden">
-                  <img
-                    src={showHeatmap ? scanData?.result.heatmap : scanData?.imageString}
-                    alt="Scan result"
-                    className="w-full"
-                  />
-                  {showHeatmap && (
-                    <div className="absolute inset-0 bg-gradient-radial from-red-500/40 via-orange-500/30 to-transparent"></div>
-                  )}
-                </div>
-                {showHeatmap && (
-                  <p className="text-sm text-gray-600 mt-3">
-                    Red areas indicate regions of higher concern detected by the AI model
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <div className="flex gap-3">
-              <Link to="/scan" className="flex-1">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                  <Camera className="w-4 h-4 mr-2" />
-                  Scan Again
-                </Button>
-              </Link>
-              <AlertDialog>
-                <AlertDialogTrigger asChild className="flex-1">
-                  <Button variant="destructive">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Scan
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete your scan.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteScan} className="bg-red-600 hover:bg-red-700">
-                      Yes, Delete Scan
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+          <div style={{ display: 'flex', gap: '24px', marginBottom: '32px' }}>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ fontWeight: '600', fontSize: '18px', color: '#1f2937', marginBottom: '8px' }}>Original Image</h3>
+              <img src={scanData?.imageString} alt="Original" style={{ width: '100%', borderRadius: '8px', border: '1px solid #e5e7eb', objectFit: 'cover', aspectRatio: '1/1' }} crossOrigin="anonymous" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ fontWeight: '600', fontSize: '18px', color: '#1f2937', marginBottom: '8px' }}>Heatmap Analysis</h3>
+              <div style={{ position: 'relative', borderRadius: '8px', border: '1px solid #e5e7eb', overflow: 'hidden', aspectRatio: '1/1' }}>
+                <img src={scanData?.result.heatmap || scanData?.imageString} alt="Heatmap" style={{ width: '100%', height: '100%', objectFit: 'cover' }} crossOrigin="anonymous" />
+                <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle, rgba(239,68,68,0.4) 0%, rgba(249,115,22,0.3) 50%, transparent 100%)' }}></div>
+              </div>
             </div>
           </div>
 
-          {/* Results Details */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Detection Results</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <div className="flex items-start gap-3 mb-4">
-                    {scanData?.result.prediction === 'Unknown_Normal' ? (
-                      <ShieldCheck className="w-6 h-6 text-gray-500 flex-shrink-0 mt-1" />
-                    ) : (
-                      <AlertCircle className="w-6 h-6 text-orange-500 flex-shrink-0 mt-1" />
+          <div style={{ marginBottom: '270px' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#111827', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px', marginBottom: '16px' }}>Detection Results</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', marginBottom: '8px' }}>
+              <span style={{ color: '#4b5563', fontWeight: '500' }}>Predicated Condition:</span>
+              <span style={{ color: '#111827', fontWeight: 'bold' }}>{formatPredictionResult(scanData?.result.prediction || '')}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', marginBottom: '8px' }}>
+              <span style={{ color: '#4b5563', fontWeight: '500' }}>Confidence Level:</span>
+              <span style={{ color: '#111827', fontWeight: 'bold' }}>{scanData?.result.confidence}%</span>
+            </div>
+            {scanData?.result.affectedArea !== undefined && scanData?.result.affectedArea !== 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', marginBottom: '8px' }}>
+                <span style={{ color: '#4b5563', fontWeight: '500' }}>Estimated Affected Area:</span>
+                <span style={{ color: '#111827', fontWeight: 'bold' }}>{scanData?.result.affectedArea}%</span>
+              </div>
+            )}
+            {riskStatusNum !== null && riskStatusNum !== -1 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', marginBottom: '8px' }}>
+                <span style={{ color: '#4b5563', fontWeight: '500' }}>Risk Status:</span>
+                <span style={{ color: '#111827', fontWeight: 'bold' }}>
+                  {riskStatusNum === 2 ? 'High Risk' : riskStatusNum === 1 ? 'Medium Risk' : riskStatusNum === 0 ? 'Low Risk' : 'Unknown Risk'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {showChart && chartData.length > 0 && (
+            <div>
+              <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#111827', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px', marginBottom: '16px' }}>Affected Area History</h2>
+              <div style={{ width: '100%', backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px' }}>
+                <LineChart width={700} height={250} data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <RechartsTooltip />
+                  <Line type="monotone" dataKey="area" stroke="#2563eb" strokeWidth={2} name="Affected Area (%)" isAnimationActive={false} />
+                </LineChart>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex-1 w-full min-h-screen flex flex-col items-center justify-center p-8 min-h-[500px]">
+          <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
+          <p className="text-gray-600">Loading scan results...</p>
+        </div>
+      ) : (
+        <div className="p-8">
+          <div className="mb-8">
+            <h1 className="text-3xl text-gray-900 mb-2">Analysis Results</h1>
+            <p className="text-gray-600">AI-powered skin analysis complete</p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* Image Preview */}
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Scanned Image</CardTitle>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowHeatmap(!showHeatmap)}
+                    >
+                      {showHeatmap ? (
+                        <>
+                          <EyeOff className="w-4 h-4 mr-2" />
+                          Hide Heatmap
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="w-4 h-4 mr-2" />
+                          Show Heatmap
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="relative rounded-lg overflow-hidden">
+                    <img
+                      src={showHeatmap ? scanData?.result.heatmap : scanData?.imageString}
+                      alt="Scan result"
+                      className="w-full"
+                    />
+                    {showHeatmap && (
+                      <div className="absolute inset-0 bg-gradient-radial from-red-500/40 via-orange-500/30 to-transparent"></div>
                     )}
-                    <div>
-                      <h3 className="text-xl text-gray-900 mb-1">{formatPredictionResult(scanData?.result.prediction!)}</h3>
-                      <Badge variant={scanData?.result.prediction === 'Unknown_Normal' ? 'secondary' : scanData?.result.confidence! >= 75 ? 'destructive' : 'default'}>
-                        {scanData?.result.prediction === 'Unknown_Normal' ? 'No' : scanData?.result.confidence! > 75 ? 'High' : 'Low'} Risk
-                      </Badge>
-                    </div>
                   </div>
+                  {showHeatmap && (
+                    <p className="text-sm text-gray-600 mt-3">
+                      Red areas indicate regions of higher concern detected by the AI model
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Confidence Level</span>
-                      <span className="text-gray-900">{scanData?.result.confidence}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div
-                        className="bg-blue-600 h-3 rounded-full transition-all"
-                        style={{ width: `${scanData?.result.confidence}%` }}
-                      ></div>
-                    </div>
-                  </div>
+              <div className="flex gap-3">
+                <Link to="/scan" className="flex-1">
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                    <Camera className="w-4 h-4 mr-2" />
+                    Scan Again
+                  </Button>
+                </Link>
+                <Button variant="outline" className="flex-1" onClick={handleGeneratePdf} disabled={generatingPdf}>
+                  {generatingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                  {generatingPdf ? 'Generating...' : 'Report PDF'}
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild className="flex-[0.5]">
+                    <Button variant="destructive">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete your scan.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeleteScan} className="bg-red-600 hover:bg-red-700">
+                        Yes, Delete Scan
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
 
-                  {scanData?.result.affectedArea && scanData?.result.affectedArea !== 0 && (
-                    <div className="space-y-2 mt-3">
+            {/* Results Details */}
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Detection Results</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <div className="flex items-start gap-3 mb-4">
+                      {scanData?.result.prediction === 'Unknown_Normal' ? (
+                        <ShieldCheck className="w-6 h-6 text-gray-500 flex-shrink-0 mt-1" />
+                      ) : (
+                        <AlertCircle className="w-6 h-6 text-orange-500 flex-shrink-0 mt-1" />
+                      )}
+                      <div>
+                        <h3 className="text-xl text-gray-900 mb-1">{formatPredictionResult(scanData?.result.prediction!)}</h3>
+                        <Badge variant={
+                          riskStatusNum === 2 ? 'destructive' :
+                            riskStatusNum === 1 ? 'default' :
+                              'secondary'
+                        }>
+                          {riskStatusNum === 2 ? 'High Risk' :
+                            riskStatusNum === 1 ? 'Medium Risk' :
+                              riskStatusNum === 0 ? 'Low Risk' :
+                                'Unknown Risk'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Estimated Affected Area</span>
-                        <span className="text-gray-900">{scanData?.result.affectedArea}%</span>
+                        <span className="text-gray-600">Confidence Level</span>
+                        <span className="text-gray-900">{scanData?.result.confidence}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-3">
                         <div
                           className="bg-blue-600 h-3 rounded-full transition-all"
-                          style={{ width: `${scanData?.result.affectedArea}%` }}
+                          style={{ width: `${scanData?.result.confidence}%` }}
                         ></div>
                       </div>
                     </div>
-                  )}
-                </div>
 
-                {/* <div className="pt-4 border-t">
-                    <p className="text-sm text-gray-600">{result.description}</p>
-                  </div> */}
-              </CardContent>
-            </Card>
-
-            {riskStatusNum !== null && riskStatusNum !== -1 && (() => {
-              const status = riskStatusNum;
-               const map: Record<number, { trend: string; message: string; bg: string; border: string; iconColor: string; Icon: any }> = {
-                 0: {
-                   trend: 'Improving or Stable',
-                   message: 'Great news! The affected area is stable or shrinking.',
-                   bg: 'bg-green-50',
-                   border: 'border-green-200',
-                   iconColor: 'text-green-600',
-                   Icon: Check,
-                 },
-                 1: {
-                   trend: 'Spreading',
-                   message: 'Notice: The area appears to be spreading slowly.',
-                   bg: 'bg-amber-50',
-                   border: 'border-amber-200',
-                   iconColor: 'text-amber-600',
-                   Icon: AlertCircle,
-                 },
-                 2: {
-                   trend: 'Rapid Spread',
-                   message: 'Alert: The affected area has increased significantly since your last scan.',
-                   bg: 'bg-red-50',
-                   border: 'border-red-200',
-                   iconColor: 'text-orange-600',
-                   Icon: AlertCircle,
-                 },
-               };
- 
-               const info = map[status] ?? null;
-               if (!info) return null;
- 
-               const Icon = info.Icon;
- 
-               return (
-                 <Card className={`${info.bg} ${info.border}`}>
-                   <CardContent className="p-4">
-                     <div className="flex items-start gap-3">
-                       <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-white/40`}>
-                         <Icon className={`w-5 h-5 ${info.iconColor}`} />
-                       </div>
-                       <div>
-                         <h4 className="text-sm font-semibold text-gray-900">{info.trend}</h4>
-                         <p className="text-sm text-gray-700 mt-1">{info.message}</p>
-                       </div>
-                     </div>
-                   </CardContent>
-                 </Card>
-               );
-             })()}
-
-            {scanData?.suggestions && scanData.suggestions.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Suggestions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3">
-                    {scanData?.suggestions.map((suggestion, index) => (
-                      <li key={index} className="flex gap-3">
-                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-sm text-blue-600">{index + 1}</span>
+                    {scanData?.result.affectedArea && scanData?.result.affectedArea !== 0 && (
+                      <div className="space-y-2 mt-3">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Estimated Affected Area</span>
+                          <span className="text-gray-900">{scanData?.result.affectedArea}%</span>
                         </div>
-                        <p className="text-gray-700">{suggestion}</p>
-                      </li>
-                    ))}
-                  </ul>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className="bg-blue-600 h-3 rounded-full transition-all"
+                            style={{ width: `${scanData?.result.affectedArea}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
-            )}
 
-            <Card className="bg-amber-50 border-amber-200">
-              <CardContent className="p-6">
-                <div className="flex gap-3">
-                  <BookOpen className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-gray-900 mb-2">Medical Disclaimer</h4>
-                    <p className="text-sm text-gray-700">
-                      This AI analysis is for informational purposes only and does not constitute medical advice.
-                      Always consult with a qualified healthcare provider for proper diagnosis and treatment.
-                    </p>
+              {showChart && chartData.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Affected Area Over Time</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="date" />
+                          <YAxis />
+                          <RechartsTooltip />
+                          <Line type="monotone" dataKey="area" stroke="#2563eb" strokeWidth={2} name="Affected Area (%)" isAnimationActive={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {riskStatusNum !== null && riskStatusNum !== -1 && (() => {
+                const status = riskStatusNum;
+                const map: Record<number, { trend: string; message: string; bg: string; border: string; iconColor: string; Icon: any }> = {
+                  0: {
+                    trend: 'Improving or Stable',
+                    message: 'Great news! The affected area is stable or shrinking.',
+                    bg: 'bg-green-50',
+                    border: 'border-green-200',
+                    iconColor: 'text-green-600',
+                    Icon: Check,
+                  },
+                  1: {
+                    trend: 'Spreading',
+                    message: 'Notice: The area appears to be spreading slowly.',
+                    bg: 'bg-amber-50',
+                    border: 'border-amber-200',
+                    iconColor: 'text-amber-600',
+                    Icon: AlertCircle,
+                  },
+                  2: {
+                    trend: 'Rapid Spread',
+                    message: 'Alert: The affected area has increased significantly since your last scan.',
+                    bg: 'bg-red-50',
+                    border: 'border-red-200',
+                    iconColor: 'text-orange-600',
+                    Icon: AlertCircle,
+                  },
+                };
+
+                const info = map[status] ?? null;
+                if (!info) return null;
+
+                const Icon = info.Icon;
+
+                return (
+                  <Card className={`${info.bg} ${info.border}`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-white/40`}>
+                          <Icon className={`w-5 h-5 ${info.iconColor}`} />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-900">{info.trend}</h4>
+                          <p className="text-sm text-gray-700 mt-1">{info.message}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+
+              {scanData?.suggestions && scanData.suggestions.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Suggestions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-3">
+                      {scanData?.suggestions.map((suggestion, index) => (
+                        <li key={index} className="flex gap-3">
+                          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-sm text-blue-600">{index + 1}</span>
+                          </div>
+                          <p className="text-gray-700">{suggestion}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card className="bg-amber-50 border-amber-200">
+                <CardContent className="p-6">
+                  <div className="flex gap-3">
+                    <BookOpen className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-gray-900 mb-2">Medical Disclaimer</h4>
+                      <p className="text-sm text-gray-700">
+                        This AI analysis is for informational purposes only and does not constitute medical advice.
+                        Always consult with a qualified healthcare provider for proper diagnosis and treatment.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
