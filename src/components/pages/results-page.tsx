@@ -43,8 +43,12 @@ export function ResultsPage() {
 
       if (res.data.success) {
         setScanData(res.data.body);
+      } else {
+        navigate('/history');
       }
-    } catch { } finally {
+    } catch {
+      navigate('/history')
+    } finally {
       setLoading(false);
     }
   }

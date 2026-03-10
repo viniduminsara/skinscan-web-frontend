@@ -38,3 +38,6 @@ Thumbs.db
 # Yarn
 .yarn/cache
 .yarn/install-state.gz
+
+# Vite
+.vite
